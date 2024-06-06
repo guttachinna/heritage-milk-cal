@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Milk Rate Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: url('https://images.unsplash.com/photo-1602989106211-81de671c23a9?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+        .container {
+            max-width: 500px;
+            margin: 100px auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .language-switch {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .input-group input {
+            width: calc(100% - 22px); /* Adjusted width to account for padding */
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .input-group input[type="number"] {
+            -webkit-appearance: textfield;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        .input-group input[type="number"]::-webkit-outer-spin-button,
+        .input-group input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .result {
+            display: none;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #28a745;
+            color: white;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .buttons {
+            margin-top: 20px;
+			margin-bottom: 20px;
+            text-align: center;
+        }
+        .buttons button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .buttons button.clear {
+            background: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="language-switch">
+    <label>
+        <input type="checkbox" id="language-toggle">
+        <span id="language-label">Switch to English</span>
+    </label>
+</div>
+
+<div class="container">
+	<div class="result" id="calculated-rate"></div>
+    <div class="input-group">
+        <label for="milk-quantity" id="label-milk-quantity">పాల పరిమాణం (లీటర్లు):</label>
+        <input type="number" id="milk-quantity" step="0.001" min="0" onclick="makeReadOnly()">
+    </div>
+    <div class="input-group">
+        <label for="milk-percentage" id="label-milk-percentage">పాల శాతం (%):</label>
+        <input type="number" id="milk-percentage" step="0.001" min="0" max="100">
+    </div>
+	<div class="buttons">
+        <button class="clear" id="clear-button">Clear</button>
+    </div>
+    <div class="input-group">
+        <label for="fat-milk-rate" id="label-fat-milk-rate">10 శాతం పాల రేటు (లీటరు):</label>
+        <input type="number" id="fat-milk-rate" value="86" step="0.001" onclick="makeEditable()" readonly>
+    </div>
+    
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const languageToggle = document.getElementById('language-toggle');
+        const languageLabel = document.getElementById('language-label');
+        const milkQuantityLabel = document.getElementById('label-milk-quantity');
+        const milkPercentageLabel = document.getElementById('label-milk-percentage');
+        const fatMilkRateLabel = document.getElementById('label-fat-milk-rate');
+        const clearButton = document.getElementById('clear-button');
+        const milkQuantityInput = document.getElementById('milk-quantity');
+        const milkPercentageInput = document.getElementById('milk-percentage');
+        const fatMilkRateInput = document.getElementById('fat-milk-rate');
+        const calculatedRateDisplay = document.getElementById('calculated-rate');
+
+        const labels = {
+            en: {
+                milkQuantity: 'Milk Quantity (liters):',
+                milkPercentage: 'Milk Percentage (%):',
+                fatMilkRate: '10% Fat Milk Rate (per liter):',
+                calculatedRate: 'Calculated Rate: ₹',
+                clear: 'Clear',
+                switchTo: 'Switch to Telugu'
+            },
+            te: {
+                milkQuantity: 'పాల పరిమాణం (లీటర్లు):',
+                milkPercentage: 'పాల శాతం (%):',
+                fatMilkRate: '10 శాతం పాల రేటు (లీటరు):',
+                calculatedRate: 'లెక్కించిన రేటు: ₹',
+                clear: 'Clear',
+                switchTo: 'Switch to English'
+            }
+        };
+
+        let currentLanguage = 'te';
+
+        function setCookie(name, value, days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + date.toUTCString();
+            document.cookie = name + "=" + value + ";" + expires + ";path=/";
+        }
+
+        function getCookie(name) {
+            const cname = name + "=";
+            const decodedCookie = decodeURIComponent(document.cookie);
+            const ca = decodedCookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(cname) === 0) {
+                    return c.substring(cname.length, c.length);
+                }
+            }
+            return "";
+        }
+
+        function updateLanguage(lang) {
+            milkQuantityLabel.textContent = labels[lang].milkQuantity;
+            milkPercentageLabel.textContent = labels[lang].milkPercentage;
+            fatMilkRateLabel.textContent = labels[lang].fatMilkRate;
+            clearButton.textContent = labels[lang].clear;
+            languageLabel.textContent = labels[lang].switchTo;
+            currentLanguage = lang;
+        }
+
+        function calculateRate() {
+            const milkQuantity = parseFloat(milkQuantityInput.value);
+            const milkPercentage = parseFloat(milkPercentageInput.value);
+            const fatMilkRate = parseFloat(fatMilkRateInput.value);
+
+            if (!isNaN(milkQuantity) && !isNaN(milkPercentage) && milkQuantity > 0 && milkPercentage > 0) {
+                const rate = milkQuantity * (milkPercentage / 10) * fatMilkRate;
+                calculatedRateDisplay.textContent = `${labels[currentLanguage].calculatedRate} ${rate.toFixed(2)}`;
+                calculatedRateDisplay.style.display = 'block';
+            } else {
+                calculatedRateDisplay.style.display = 'none';
+            }
+        }
+		
+		 function makeEditable() {
+            var fatMilkRateInput = document.getElementById('fat-milk-rate');
+            fatMilkRateInput.removeAttribute('readonly');
+            fatMilkRateInput.focus();
+        }
+
+        function makeReadOnly() {
+            var fatMilkRateInput = document.getElementById('fat-milk-rate');
+            fatMilkRateInput.setAttribute('readonly', true);
+        }
+
+        function clearInputs() {
+            milkQuantityInput.value = '';
+            milkPercentageInput.value = '';
+            calculatedRateDisplay.style.display = 'none';
+        }
+
+        milkQuantityInput.addEventListener('input', calculateRate);
+        milkPercentageInput.addEventListener('input', calculateRate);
+		fatMilkRateInput.addEventListener('input', calculateRate);
+        fatMilkRateInput.addEventListener('input', function () {
+            setCookie('defaultRate', fatMilkRateInput.value, 365);
+        });
+        clearButton.addEventListener('click', clearInputs);
+        languageToggle.addEventListener('change', function () {
+            const newLang = currentLanguage === 'en' ? 'te' : 'en';
+            updateLanguage(newLang);
+        });
+
+        // Initialize in Telugu
+        updateLanguage('te');
+
+        // Load default rate from cookie
+        const savedRate = getCookie('defaultRate');
+        if (savedRate) {
+            fatMilkRateInput.value = savedRate;
+        }
+    });
+</script>
+
+</body>
+</html>
